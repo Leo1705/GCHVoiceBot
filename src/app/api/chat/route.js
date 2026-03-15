@@ -78,15 +78,20 @@ export async function POST(request) {
       });
     }
 
-    const context = typeof knowledgeContext === "string" && knowledgeContext.trim()
-      ? knowledgeContext.trim()
-      : getKnowledgeContext();
+    let context = "";
+    try {
+      context = typeof knowledgeContext === "string" && knowledgeContext.trim()
+        ? knowledgeContext.trim()
+        : getKnowledgeContext();
+    } catch (e) {
+      console.warn("getKnowledgeContext failed (e.g. no filesystem on Vercel):", e?.message);
+    }
     const llmResult = await chatWithLLM({
       transcript: transcript.trim(),
       conversation,
       mode,
       userMemory,
-      knowledgeContext: context,
+      knowledgeContext: context || "",
       patientName: String(patientName || "").trim(),
     });
 

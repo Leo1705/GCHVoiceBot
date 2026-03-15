@@ -316,7 +316,7 @@ function LegacySessionContent({ mode, voiceType, recordingEnabled }) {
         <div className="mt-4 rounded-xl border-2 border-amber-400 bg-amber-50 p-4">
           <p className="font-semibold text-amber-900">No ElevenLabs voice — using browser voice</p>
           <p className="mt-1 text-sm text-amber-800">
-            Add <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">ELEVENLABS_API_KEY</code> to <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">.env.local</code>, then <strong>restart the dev server</strong> (npm run dev). Get a key at elevenlabs.io.
+            Set <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">ELEVENLABS_API_KEY</code> in your environment (locally: <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">.env.local</code> then restart; on Vercel: Project → Settings → Environment Variables, then redeploy). Get a key at elevenlabs.io.
           </p>
         </div>
       )}

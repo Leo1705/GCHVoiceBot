@@ -13,15 +13,19 @@ const KNOWLEDGE_FILE = path.join(DATA_DIR, "knowledge.json");
 const MAX_CONTEXT_CHARS = 6000; // max chars to send as knowledgeContext to LLM
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch {
+    // On Vercel/serverless the filesystem may be read-only; ignore.
   }
 }
 
 function loadChunks() {
-  ensureDataDir();
-  if (!fs.existsSync(KNOWLEDGE_FILE)) return [];
   try {
+    ensureDataDir();
+    if (!fs.existsSync(KNOWLEDGE_FILE)) return [];
     const raw = fs.readFileSync(KNOWLEDGE_FILE, "utf8");
     const data = JSON.parse(raw);
     return Array.isArray(data.chunks) ? data.chunks : [];
