@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build
+.next
+out
+build
+dist
+
+# Env (API keys)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ingested knowledge store (optional: remove if you want to commit knowledge)
+data/
+
+# Debug / IDE
+npm-debug.log*
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
