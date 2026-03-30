@@ -16,10 +16,11 @@ export const MOOD_OPTIONS = [
   { id: "not_sure", label: "Not sure yet", sub: "Just want to talk", icon: "✨" },
 ];
 
-// Voice customization — premade voices only (ElevenLabs free tier). Do not use library voice IDs here.
+// Voice customization — ElevenLabs voice IDs from your account / [Voice Library](https://elevenlabs.io/app/voice-library).
+// Library voices require a plan that allows API use (free tier may only allow premade voices).
 export const VOICE_PROFILES = [
-  { id: "female", label: "Female", gender: "female", tone: "warm", speed: 1, elevenlabsVoiceId: "EXAVITQu4vr4xnSDxMaL" }, // Bella (premade)
-  { id: "male", label: "Male", gender: "male", tone: "calm", speed: 1, elevenlabsVoiceId: "TxGEqnHWrfWFTfGW9XjX" },     // Josh (premade)
+  { id: "female", label: "Female", gender: "female", tone: "warm", speed: 1, elevenlabsVoiceId: "56bWURjYFHyYyVf490Dp" },
+  { id: "male", label: "Male", gender: "male", tone: "calm", speed: 1, elevenlabsVoiceId: "TxGEqnHWrfWFTfGW9XjX" }, // Josh (premade)
 ];
 
 // Escalation levels for upsell
@@ -90,6 +91,78 @@ export const END_SESSION_RESPONSE =
 export const UPSELL_OFFER =
   "Would you like to talk to a real therapist about this? I can help you book a session now, or we can keep talking here. What would you prefer?";
 
-// Opening greeting when session starts (phone-style: no button)
+// Opening greeting when session starts (phone-style: no button) — legacy fallback
 export const SESSION_GREETING =
   "Hi. I'm here when you're ready. Say what's on your mind.";
+
+/**
+ * Nora’s spoken intro before the onboarding modal appears.
+ * Varies by time-of-day and rotates so it feels less scripted.
+ */
+export function getNoraIntroGreeting(now = new Date()) {
+  const hour = typeof now?.getHours === "function" ? now.getHours() : new Date().getHours();
+  const timeOfDay =
+    hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 17 ? "afternoon" : hour >= 17 && hour < 22 ? "evening" : "night";
+
+  const openers = {
+    morning: [
+      "Good morning. I’m Nora. I’m glad you’re here.",
+      "Hi there—good morning. I’m Nora.",
+      "Good morning. Before we begin, let’s take this one step at a time.",
+    ],
+    afternoon: [
+      "Hi—I’m Nora. I’m glad you reached out.",
+      "Hello. I’m Nora. Thanks for being here today.",
+      "Hi there. I’m Nora. We can take this at your pace.",
+    ],
+    evening: [
+      "Good evening. I’m Nora. I’m glad you’re here.",
+      "Hi there—good evening. I’m Nora.",
+      "Good evening. We can slow things down together, if that helps.",
+    ],
+    night: [
+      "Hi. I’m Nora. I’m here with you.",
+      "Hello. I’m Nora. Thanks for showing up, even this late.",
+      "Hi there. We can keep this gentle and simple tonight.",
+    ],
+  }[timeOfDay];
+
+  const guidance = [
+    "In a moment, you’ll see two quick prompts—your name and who you’re working with—and then we’ll talk.",
+    "You’ll see two quick questions on screen—your name and your therapist—and then we can begin.",
+    "First, there are two quick prompts on screen—your name and your therapist—then we’ll start.",
+  ];
+
+  const idx = Math.floor(Math.random() * openers.length);
+  const jdx = Math.floor(Math.random() * guidance.length);
+  return `${openers[idx]} ${guidance[jdx]}`;
+}
+
+/** Back-compat: some older components may still import this constant. */
+export const NORA_INTRO_GREETING = getNoraIntroGreeting;
+
+/** Spoken right after the patient completes the pop-up. {name} is replaced with their first name. */
+export const NORA_POST_ONBOARDING_TEMPLATE =
+  "Lovely to meet you, {name}. How are you feeling right now?";
+
+export function getNoraPostOnboardingLine(patientName) {
+  const name = String(patientName || "").trim() || "there";
+  return NORA_POST_ONBOARDING_TEMPLATE.replace("{name}", name);
+}
+
+/**
+ * Therapists shown in the session intro modal (single select).
+ * Email receives session-complete notification + .txt summary attachment.
+ */
+export const THERAPIST_SELECT_OPTIONS = [
+  { id: "amari-morton", name: "Amari Morton", email: "amarimorton@greaterchangehealth.com" },
+  { id: "danielle-hamilton", name: "Danielle Hamilton", email: "DanielleHamilton1912@gmail.com" },
+  { id: "deborah-kuhlman", name: "Deborah Kuhlman", email: "Deborah.Kuhlman@saintleo.edu" },
+  { id: "lynn-heuken", name: "Lynn Heuken", email: "lynn@greaterchangehealth.com" },
+  { id: "ravleen-kaur", name: "Ravleen Kaur", email: "ravleen@greaterchangehealth.com" },
+  { id: "madhulika-singhal", name: "Madhulika Singhal", email: "madhulikas104a@gmail.com" },
+  { id: "steve-transou", name: "Steve Transou", email: "steve.transou@gmail.com" },
+  { id: "jenni-altamirano", name: "Jenni Altamirano", email: "Jennifer@greaterchangehealth.com" },
+  { id: "kai-avery", name: "Kai Avery", email: "javery22@student.gsu.edu" },
+  { id: "mickayla-brandao", name: "Mickayla Brandao", email: "mickaylabrandao@interlinkedcounseling.net" },
+];

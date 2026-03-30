@@ -1,6 +1,6 @@
 /**
  * POST /api/tts — ElevenLabs Text-to-Speech.
- * Body: { text: string, voiceId?: string, profileId?: string, stability?, similarity_boost? }
+ * Body: { text: string, voiceId?: string, profileId?: string, stability?, similarity_boost?, style? }
  * Returns: audio/mpeg bytes. If ELEVENLABS_API_KEY is missing, returns 503.
  * Uses direct fetch + arrayBuffer so the browser always gets playable audio.
  */
@@ -39,8 +39,9 @@ export async function POST(request) {
 
     const voiceId = getVoiceId(body.profileId || "female");
     const modelsToTry = ["eleven_multilingual_v2", "eleven_flash_v2_5", "eleven_turbo_v2_5"];
-    const stability = body.stability ?? 0.5;
-    const similarity_boost = body.similarity_boost ?? 0.75;
+    const stability = body.stability ?? 0.35;
+    const similarity_boost = body.similarity_boost ?? 0.78;
+    const style = body.style ?? 0.45;
 
     let lastErr;
     let res;
@@ -57,7 +58,7 @@ export async function POST(request) {
         body: JSON.stringify({
           text,
           model_id: modelId,
-          voice_settings: { stability, similarity_boost },
+          voice_settings: { stability, similarity_boost, style, use_speaker_boost: true },
         }),
       });
       if (res.ok) break;

@@ -3,6 +3,16 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { loadVoices, pickVoiceForProfile } from "@/lib/voices";
 
+function normalizeForSpeech(text) {
+  return String(text || "")
+    .replace(/\u2026/g, ".") // ellipsis
+    .replace(/\.{3,}/g, ".")
+    .replace(/[—–]/g, ",") // em/en dash -> short pause
+    .replace(/\s*\n+\s*/g, " ") // newlines -> spaces
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
  * TTS: ElevenLabs API when configured (POST /api/tts). When server says configured we never use browser voice.
  */
@@ -68,6 +78,9 @@ export function useSpeechPlayback(voiceProfileId = "female", outputDeviceId = ""
     async (text, voiceProfile = {}) => {
       if (!text || typeof window === "undefined") return;
 
+      const speakText = normalizeForSpeech(text);
+      if (!speakText) return;
+
       window.speechSynthesis?.cancel();
       if (audioRef.current) {
         try {
@@ -86,10 +99,12 @@ export function useSpeechPlayback(voiceProfileId = "female", outputDeviceId = ""
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              text,
+              text: speakText,
               profileId,
-              stability: 0.5,
-              similarity_boost: 0.75,
+              // More expressive voice (still controlled; not cartoonish)
+              stability: 0.35,
+              similarity_boost: 0.78,
+              style: 0.45,
             }),
           });
 
@@ -99,7 +114,7 @@ export function useSpeechPlayback(voiceProfileId = "female", outputDeviceId = ""
             const blob = await res.blob();
             if (blob.size === 0) {
               setError("Empty audio from ElevenLabs");
-              if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(text, voiceProfile);
+              if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(speakText, voiceProfile);
               return;
             }
             const url = URL.createObjectURL(blob);
@@ -149,16 +164,16 @@ export function useSpeechPlayback(voiceProfileId = "female", outputDeviceId = ""
           } else {
             setError("TTS failed");
           }
-          if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(text, voiceProfile);
+          if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(speakText, voiceProfile);
           return;
         } catch (e) {
           setError(e?.message || "TTS error");
-          if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(text, voiceProfile);
+          if (!elevenLabsConfiguredRef.current) return speakWithWebSpeech(speakText, voiceProfile);
           return;
         }
       }
 
-      return speakWithWebSpeech(text, voiceProfile);
+      return speakWithWebSpeech(speakText, voiceProfile);
     },
     [voiceProfileId, useElevenLabs, speakWithWebSpeech, outputDeviceId]
   );

@@ -12,6 +12,9 @@ export function useSpeechRecognition(options = {}) {
   const silenceTimeoutMs = options.silenceTimeoutMs ?? DEFAULT_SILENCE_MS;
   const onSilenceRef = useRef(options.onSilence);
   onSilenceRef.current = options.onSilence;
+  const shouldAutoRestart = options.autoRestart !== false;
+  const stopRequestedRef = useRef(false);
+  const autoRestartTimerRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState(null);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -28,7 +31,16 @@ export function useSpeechRecognition(options = {}) {
     }
   }, []);
 
+  const clearAutoRestartTimer = useCallback(() => {
+    if (autoRestartTimerRef.current) {
+      clearTimeout(autoRestartTimerRef.current);
+      autoRestartTimerRef.current = null;
+    }
+  }, []);
+
   const startListening = useCallback(() => {
+    stopRequestedRef.current = false;
+    clearAutoRestartTimer();
     setError(null);
     setInterimTranscript("");
     finalRef.current = "";
@@ -53,7 +65,7 @@ export function useSpeechRecognition(options = {}) {
       for (let i = 0; i < results.length; i++) {
         const transcript = results[i][0].transcript;
         if (results[i].isFinal) {
-          fullFinal += transcript;
+          fullFinal += (fullFinal ? " " : "") + transcript;
           currentInterim = "";
         } else {
           currentInterim = transcript;
@@ -61,7 +73,7 @@ export function useSpeechRecognition(options = {}) {
       }
       if (fullFinal.length > 0) finalRef.current = fullFinal;
       interimAccumRef.current = currentInterim;
-      setInterimTranscript((finalRef.current + interimAccumRef.current).trim());
+      setInterimTranscript(`${finalRef.current} ${interimAccumRef.current}`.trim());
 
       // Auto-stop after silence: reset timer on each result; when it fires, notify and stop
       clearSilenceTimer();
@@ -82,6 +94,19 @@ export function useSpeechRecognition(options = {}) {
       if (resolveRef.current) {
         resolveRef.current(result);
         resolveRef.current = null;
+      }
+      // SpeechRecognition can stop unexpectedly on some browsers; auto-restart to keep conversation smooth.
+      if (shouldAutoRestart && !stopRequestedRef.current) {
+        clearAutoRestartTimer();
+        autoRestartTimerRef.current = setTimeout(() => {
+          autoRestartTimerRef.current = null;
+          try {
+            recognitionRef.current?.start?.();
+            setIsListening(true);
+          } catch (_) {
+            // If restart fails, user can tap / trigger a new start later.
+          }
+        }, 250);
       }
     };
 
@@ -111,6 +136,8 @@ export function useSpeechRecognition(options = {}) {
   }, []);
 
   const stopListening = useCallback(() => {
+    stopRequestedRef.current = true;
+    clearAutoRestartTimer();
     clearSilenceTimer();
     return new Promise((resolve) => {
       const rec = recognitionRef.current;
@@ -127,7 +154,7 @@ export function useSpeechRecognition(options = {}) {
         resolveRef.current = null;
       }
     });
-  }, [clearSilenceTimer]);
+  }, [clearSilenceTimer, clearAutoRestartTimer]);
 
   return { startListening, stopListening, interimTranscript, isListening, error };
 }

@@ -1,6 +1,6 @@
 /**
  * Client-side: store/read therapist (name, email) for the current session.
- * Used by /start before navigating to /session, and by session page on end.
+ * Used by the session page (onboarding + end) and optional pre-fill from bookmarks.
  */
 
 const STORAGE_KEY = "gch_therapist";

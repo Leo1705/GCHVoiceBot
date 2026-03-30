@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConversation } from "@elevenlabs/react";
 import VoiceCircle from "@/components/VoiceCircle";
-import StateIndicator from "@/components/StateIndicator";
 import LiveCaptions from "@/components/LiveCaptions";
 import EmergencyPanel from "@/components/EmergencyPanel";
 import BookingModal from "@/components/BookingModal";
@@ -103,21 +102,22 @@ export default function AgentSession({ signedUrl, mode: initialMode, voiceType: 
           conversation,
         }),
       });
-    } catch (e) {
-      console.warn("Failed to save session", e);
+    } catch {
+      /* session save failed silently */
     }
-    router.push("/");
+    router.push("/finished");
   }, [endSession, router, initialMode, conversation]);
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-4 py-6">
       <header className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-sm text-calm-600 hover:underline">← Home</Link>
-          <h1 className="text-xl font-bold text-calm-800">Session (ElevenLabs)</h1>
+          <Link href="/finished" className="text-sm text-calm-600 hover:underline">
+            Leave
+          </Link>
+          <h1 className="text-xl font-bold text-calm-800">Session</h1>
         </div>
         <div className="flex items-center gap-2">
-          <StateIndicator state={state} />
           <button
             type="button"
             onClick={handleEndSession}

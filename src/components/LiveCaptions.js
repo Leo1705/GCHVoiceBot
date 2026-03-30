@@ -37,7 +37,17 @@ export default function LiveCaptions({ conversation, state, interimTranscript = 
 
   // Word-by-word reveal for her message — start at 1 so first word shows immediately (no empty flash)
   useEffect(() => {
+    const isHerTurn = lastMessage?.role === "assistant";
+    const isSpeakingNow = state === "speaking";
+
     if (!targetWords.length) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+      return;
+    }
+    // Only animate while Nora is actively speaking; if user interrupts (state changes),
+    // freeze the caption where it is.
+    if (!isHerTurn || !isSpeakingNow) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
       return;
@@ -56,7 +66,7 @@ export default function LiveCaptions({ conversation, state, interimTranscript = 
       if (intervalRef.current) clearInterval(intervalRef.current);
       intervalRef.current = null;
     };
-  }, [target, displayedWordCount, targetWords.length]);
+  }, [lastMessage?.role, state, target, displayedWordCount, targetWords.length]);
 
   useEffect(() => {
     const id = setInterval(() => setCursorVisible((v) => !v), CURSOR_BLINK_MS);

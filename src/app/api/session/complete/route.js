@@ -2,55 +2,13 @@
  * POST /api/session/complete
  * Body: { patientName, patientEmail, mode?, summary?, conversation?[] }
  * Looks up therapist from assignments by patientEmail. Saves session and emails therapist if found.
+ * Email: set RESEND_API_KEY (free tier at resend.com) or classic SMTP — see .env.example
  */
 
 import { addSession } from "@/lib/sessionStore";
 import { getTherapistForPatient } from "@/lib/assignmentsStore";
-import nodemailer from "nodemailer";
-
-function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) return null;
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
-}
-
-async function sendTherapistEmail(toEmail, therapistName, summary, exchangeCount) {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn("SMTP not configured (SMTP_HOST, SMTP_USER, SMTP_PASS). Session saved but no email sent.");
-    return;
-  }
-  const from = process.env.MAIL_FROM || process.env.SMTP_USER || "voice-therapy@greaterchangehealth.com";
-  const subject = "Voice therapy session completed – you were listed as responsible therapist";
-  const text = [
-    `Hi ${therapistName || "there"},`,
-    "",
-    "A voice therapy session was just completed and you were listed as the responsible therapist for this patient.",
-    "",
-    summary ? `Summary: ${summary}` : `The session had ${exchangeCount} message exchanges.`,
-    "",
-    "— Greater Change Therapy (voice assistant)",
-  ].join("\n");
-
-  try {
-    await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject,
-      text,
-    });
-  } catch (err) {
-    console.error("Failed to send therapist email:", err?.message || err);
-  }
-}
+import { buildTherapistSessionTxt, sessionAttachmentFilename } from "@/lib/sessionSummaryExport";
+import { sendTherapistSessionEmail } from "@/lib/sendSessionEmail";
 
 export async function POST(request) {
   try {
@@ -61,9 +19,18 @@ export async function POST(request) {
       mode = "calm_support",
       summary = "",
       conversation = [],
+      therapistName: therapistNameBody = "",
+      therapistEmail: therapistEmailBody = "",
     } = body;
 
-    const therapist = getTherapistForPatient(patientEmail);
+    const fromSelection =
+      String(therapistNameBody || "").trim() && String(therapistEmailBody || "").trim()
+        ? {
+            therapistName: String(therapistNameBody).trim(),
+            therapistEmail: String(therapistEmailBody).trim(),
+          }
+        : null;
+    const therapist = fromSelection || getTherapistForPatient(patientEmail);
     const therapistName = therapist?.therapistName ?? "";
     const therapistEmail = therapist?.therapistEmail ?? "";
 
@@ -80,15 +47,34 @@ export async function POST(request) {
     });
 
     const exchangeCount = (record.conversation || []).length;
-    const summaryForEmail = summary || `Session completed with ${exchangeCount} exchanges.`;
+    const oneLineSummary = summary || `Session completed with ${exchangeCount} exchanges.`;
 
     if (record.therapistEmail) {
-      await sendTherapistEmail(
-        record.therapistEmail,
-        record.therapistName,
-        summaryForEmail,
-        exchangeCount
-      );
+      const attachName = sessionAttachmentFilename(record.patientName, completedAt);
+      try {
+        await sendTherapistSessionEmail({
+          toEmail: record.therapistEmail,
+          therapistName: record.therapistName,
+          patientName: record.patientName,
+          mode: record.mode,
+          completedAt,
+          conversation: record.conversation || [],
+          oneLineSummary,
+          exchangeCount,
+          attachFilename: attachName,
+          buildTxtBody: () =>
+            buildTherapistSessionTxt({
+              patientName: record.patientName,
+              therapistName: record.therapistName,
+              mode: record.mode,
+              completedAt,
+              conversation: record.conversation || [],
+              oneLineSummary,
+            }),
+        });
+      } catch (e) {
+        console.error("Therapist email send failed:", e?.message || e);
+      }
     }
 
     return Response.json({ ok: true, id: record.id });
