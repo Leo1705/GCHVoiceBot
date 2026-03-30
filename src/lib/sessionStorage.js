@@ -25,7 +25,7 @@ function generateTags(conversation) {
 
 function generateQuote(conversation) {
   const assistantLines = conversation.filter((m) => m.role === "assistant").map((m) => m.text);
-  if (assistantLines.length === 0) return "Take your time. I'm here when you're ready.";
+  if (assistantLines.length === 0) return "Take your time. I'm here with you.";
   const candidates = assistantLines.filter((t) => t.length > 20 && t.length < 120);
   return candidates.length > 0 ? candidates[candidates.length - 1] : assistantLines[assistantLines.length - 1];
 }

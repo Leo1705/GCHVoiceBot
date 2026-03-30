@@ -93,13 +93,13 @@ export const UPSELL_OFFER =
 
 // Opening greeting when session starts (phone-style: no button) — legacy fallback
 export const SESSION_GREETING =
-  "Hi. I'm here when you're ready. Say what's on your mind.";
+  "Hi. I'm here with you. Say what's on your mind.";
 
 /**
  * Nora’s spoken intro before the onboarding modal appears.
  * Varies by time-of-day and rotates so it feels less scripted.
  */
-export function getNoraIntroGreeting(now = new Date()) {
+export function getNoraIntroGreeting(now = new Date(), firstName = "") {
   const hour = typeof now?.getHours === "function" ? now.getHours() : new Date().getHours();
   const timeOfDay =
     hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 17 ? "afternoon" : hour >= 17 && hour < 22 ? "evening" : "night";
@@ -128,18 +128,19 @@ export function getNoraIntroGreeting(now = new Date()) {
   }[timeOfDay];
 
   const guidance = [
-    "In a moment, you’ll see two quick prompts—your name and who you’re working with—and then we’ll talk.",
-    "You’ll see two quick questions on screen—your name and your therapist—and then we can begin.",
-    "First, there are two quick prompts on screen—your name and your therapist—then we’ll start.",
+    "Take a breath—we can talk whenever you like, at your pace.",
+    "I’m here with you. When it feels right, tell me what’s on your mind.",
+    "There’s no rush. We’ll take this one step at a time, together.",
   ];
 
   const idx = Math.floor(Math.random() * openers.length);
   const jdx = Math.floor(Math.random() * guidance.length);
-  return `${openers[idx]} ${guidance[jdx]}`;
+  const base = `${openers[idx]} ${guidance[jdx]}`;
+  const first = String(firstName || "").trim().split(/\s+/)[0];
+  if (first) return `${base} ${first}, I’m glad you’re here.`;
+  return base;
 }
 
-/** Back-compat: some older components may still import this constant. */
-export const NORA_INTRO_GREETING = getNoraIntroGreeting;
 
 /** Spoken right after the patient completes the pop-up. {name} is replaced with their first name. */
 export const NORA_POST_ONBOARDING_TEMPLATE =
@@ -148,6 +149,46 @@ export const NORA_POST_ONBOARDING_TEMPLATE =
 export function getNoraPostOnboardingLine(patientName) {
   const name = String(patientName || "").trim() || "there";
   return NORA_POST_ONBOARDING_TEMPLATE.replace("{name}", name);
+}
+
+/**
+ * Single spoken opening for /session (one TTS, one tone): short intro + one question.
+ * Avoid stacking intro + guidance + post-onboarding, which sounds like two separate openers.
+ */
+export function getNoraSessionOpening(now = new Date(), firstName = "") {
+  const hour = typeof now?.getHours === "function" ? now.getHours() : new Date().getHours();
+  const timeOfDay =
+    hour >= 5 && hour < 12 ? "morning" : hour >= 12 && hour < 17 ? "afternoon" : hour >= 17 && hour < 22 ? "evening" : "night";
+
+  const lines = {
+    morning: [
+      "Good morning—I’m Nora.",
+      "Hi, good morning. I’m Nora.",
+      "Morning. I’m Nora; I’m glad you’re here.",
+    ],
+    afternoon: [
+      "Hi—I’m Nora.",
+      "Hello, I’m Nora. Thanks for being here.",
+      "Hi there. I’m Nora.",
+    ],
+    evening: [
+      "Good evening—I’m Nora.",
+      "Hi, good evening. I’m Nora.",
+      "Evening. I’m Nora; thanks for showing up.",
+    ],
+    night: [
+      "Hi—I’m Nora.",
+      "Hello, I’m Nora. I’m here with you.",
+      "Hi there. I’m Nora.",
+    ],
+  }[timeOfDay];
+
+  const line = lines[Math.floor(Math.random() * lines.length)];
+  const first = String(firstName || "").trim().split(/\s+/)[0];
+  if (first) {
+    return `${line} How are you feeling right now, ${first}?`;
+  }
+  return `${line} How are you feeling right now?`;
 }
 
 /**

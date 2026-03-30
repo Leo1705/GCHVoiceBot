@@ -10,6 +10,8 @@ import { chatWithLLM } from "@/lib/llm";
 import { pickResponseFromTranscript } from "@/lib/responseFromTranscript";
 import { getKnowledgeContext } from "@/lib/knowledgeStore";
 import { SAFETY_RESPONSE, END_SESSION_RESPONSE, UPSELL_OFFER } from "@/lib/constants";
+import { getSessionUser } from "@/lib/getSessionUser";
+import { isFreeTierBlocked } from "@/lib/billing";
 
 const UNSAFE_PHRASES = [
   "kill myself",
@@ -38,6 +40,25 @@ export async function POST(request) {
       triggerUpsell,
       endSession: endSessionRequested,
     } = body;
+
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) {
+      return Response.json({ error: "Unauthorized", responseText: "Please sign in to continue." }, { status: 401 });
+    }
+    if (isFreeTierBlocked(sessionUser.plan, sessionUser.voiceSecondsUsed || 0)) {
+      return Response.json(
+        {
+          paywall: true,
+          responseText:
+            "You’ve used your free voice time. Upgrade to keep talking with Nora—see pricing on the home page.",
+          factsToRemember: [],
+          safe: true,
+        },
+        { status: 402 }
+      );
+    }
+
+    const effectivePatientName = String(sessionUser.name || "").trim() || String(patientName || "").trim();
 
     if (triggerSafety) {
       return Response.json({
@@ -92,7 +113,7 @@ export async function POST(request) {
       mode,
       userMemory,
       knowledgeContext: context || "",
-      patientName: String(patientName || "").trim(),
+      patientName: effectivePatientName,
     });
 
     if (llmResult?.responseText) {

@@ -12,6 +12,8 @@
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.39.0",
     "@elevenlabs/react": "^0.14.1",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.2",
     "next": "14.2.35",
     "nodemailer": "^8.0.2",
     "openai": "^4.77.0",

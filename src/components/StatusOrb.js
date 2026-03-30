@@ -13,7 +13,7 @@ export default function StatusOrb({ state }) {
     isListening ? "Listening…" :
     isSpeaking ? "Speaking…" :
     isThinking ? "Thinking…" :
-    "Ready";
+    "Nora";
 
   const orbVariant = isSpeaking
     ? "status-orb-speak"

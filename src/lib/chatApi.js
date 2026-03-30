@@ -17,6 +17,7 @@ export async function sendChat({
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({
       transcript,
       conversation,
@@ -30,9 +31,22 @@ export async function sendChat({
     }),
   });
   const data = await res.json();
+  if (res.status === 402 || data.paywall) {
+    return {
+      ok: false,
+      paywall: true,
+      transcript,
+      responseText:
+        data.responseText ||
+        "You’ve used your free voice time. Upgrade to keep talking with Nora.",
+      safe: true,
+      factsToRemember: [],
+    };
+  }
   if (!res.ok) {
     return {
       ok: false,
+      paywall: false,
       transcript,
       responseText: data.responseText || "Something went wrong. Please try again.",
       safe: true,
@@ -41,6 +55,7 @@ export async function sendChat({
   }
   return {
     ok: true,
+    paywall: false,
     transcript,
     responseText: data.responseText,
     safe: data.safe !== false,
